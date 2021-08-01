@@ -36,6 +36,7 @@ struct Patch {
   float brightness;
   float damping;
   float position;
+  int32_t model_delta;
 };
 
 }  // namespace rings

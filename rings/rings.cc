@@ -95,6 +95,11 @@ void FillBuffer(Codec::Frame* input, Codec::Frame* output, size_t size) {
   cv_scaler.DetectAudioNormalization(input, size);
   cv_scaler.Read(&patch, &performance_state);
   
+  if (patch.model_delta != 0) {
+    part.delta_model(patch.model_delta);
+    string_synth.set_fx(static_cast<FxType>(part.model()));
+  }
+
   if (settings.state().easter_egg) {
     for (size_t i = 0; i < size; ++i) {
       in[i] = static_cast<float>(input[i].r) / 32768.0f;

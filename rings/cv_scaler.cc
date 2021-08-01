@@ -44,7 +44,7 @@ using namespace stmlib;
 
 /* static */
 ChannelSettings CvScaler::channel_settings_[ADC_CHANNEL_LAST] = {
-  { LAW_LINEAR, true, 1.00f },  // ADC_CHANNEL_CV_FREQUENCY
+  { LAW_LINEAR, false, 1.00f }, // ADC_CHANNEL_CV_MODEL_SELECT
   { LAW_LINEAR, true, 0.1f },  // ADC_CHANNEL_CV_STRUCTURE
   { LAW_LINEAR, true, 0.1f },  // ADC_CHANNEL_CV_BRIGHTNESS
   { LAW_LINEAR, true, 0.05f },  // ADC_CHANNEL_CV_DAMPING
@@ -79,6 +79,8 @@ void CvScaler::Init(CalibrationData* calibration_data) {
   
   inhibit_strum_ = 0;
   fm_cv_ = 0.0f;
+
+  model_offset_ = 0;
   
   normalization_probe_enabled_ = true;
   normalization_probe_forced_state_ = false;
@@ -176,16 +178,30 @@ void CvScaler::Read(Patch* patch, PerformanceState* performance_state) {
   ATTENUVERT(patch->damping, DAMPING, 0.0f, 1.0f);
   ATTENUVERT(patch->position, POSITION, 0.0f, 1.0f);
   
-  float fm = adc_lp_[ADC_CHANNEL_CV_FREQUENCY] * 48.0f;
-  float error = fm - fm_cv_;
-  if (fabs(error) >= 0.8f) {
-    fm_cv_ = fm;
-  } else {
-    fm_cv_ += 0.02f * error;
+  {
+    float model_offset = -(adc_lp_[ADC_CHANNEL_CV_MODEL_SELECT] - 0.5f);
+    CONSTRAIN(model_offset, -0.2f, 0.2f);
+    model_offset *= 16.0f;
+
+    int model_offset_temp = model_offset_;
+    if (static_cast<int32_t>(model_offset) > model_offset_) {
+      model_offset_temp = static_cast<int32_t>(model_offset - 0.1f);
+    }
+    else if (static_cast<int32_t>(model_offset) < model_offset_) {
+      model_offset_temp = static_cast<int32_t>(model_offset + 0.1f);
+    }
+
+    patch->model_delta = 0;
+    if (model_offset_ != model_offset_temp) {
+      patch->model_delta = model_offset_temp - model_offset_;
+      model_offset_ = model_offset_temp;
+    }
   }
-  performance_state->fm = fm_cv_ * adc_lp_[ADC_CHANNEL_ATTENUVERTER_FREQUENCY];
-  CONSTRAIN(performance_state->fm, -48.0f, 48.0f);
-  
+
+  // emulate non-patched state for fine tune
+  // 0.20625 = 3.3/16 (Freq CV In is -8v~8v and 3.3v is normalized)
+  performance_state->fm = 0.20625f * adc_lp_[ADC_CHANNEL_ATTENUVERTER_FREQUENCY];
+
   float transpose = 60.0f * adc_lp_[ADC_CHANNEL_POT_FREQUENCY];
   float hysteresis = transpose - transpose_ > 0.0f ? -0.3f : +0.3f;
   transpose_ = static_cast<int32_t>(transpose + hysteresis + 0.5f);

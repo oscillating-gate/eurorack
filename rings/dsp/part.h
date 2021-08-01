@@ -98,6 +98,16 @@ class Part {
       dirty_ = true;
     }
   }
+  inline void delta_model(int32_t delta) {
+    if (delta == 0) return;
+
+    int32_t model_temp = model_ + delta;
+    while (model_temp < 0) model_temp += 3;
+    model_temp %= 3;
+
+    model_ = static_cast<ResonatorModel>(model_temp);
+    dirty_ = true;
+  }
 
  private:
   void ConfigureResonators();
