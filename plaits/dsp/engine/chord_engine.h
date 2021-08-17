@@ -1,6 +1,6 @@
-// Copyright 2016 Olivier Gillet.
+// Copyright 2016 Emilie Gillet.
 //
-// Author: Olivier Gillet (ol.gillet@gmail.com)
+// Author: Emilie Gillet (emilie.o.gillet@gmail.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,8 +39,15 @@ namespace plaits {
 
 const int kChordNumNotes = 4;
 const int kChordNumVoices = 5;
-const int kChordNumChords = 11;
 const int kChordNumHarmonics = 3;
+
+// #define JON_CHORDS
+
+#ifdef JON_CHORDS
+const int kChordNumChords = 17;
+#else
+const int kChordNumChords = 11;
+#endif  // JON_CHORDS
 
 class ChordEngine : public Engine {
  public:
